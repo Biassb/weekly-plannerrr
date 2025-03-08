@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notion Weekly Planner Widget</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #ffdd40;
+      --secondary-color: #ffdd40;
+      --accent-color: #ffd166;
+      --text-color: #333333;
+      --muted-text: #6c757d;
+      --card-bg: rgba(255, 255, 255, 0.8);
+      --border-color: #e9ecef;
+      --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      --border-radius: 12px;
+      --header-height: 70px;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      color: var(--text-color);
+      padding: 20px;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: transparent;
+    }
+    
+    .planner-container {
+      background-color: transparent;
+      width: 100%;
+      max-width: 1100px;
+      border-radius: var(--border-radius);
+      overflow: hidden;
+    }
+    
+    .planner-header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 16px 24px;
+      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: var(--header-height);
+      border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+    
+    .planner-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-grow: 1;
+    }
+    
+    .current-date {
+      font-size: 16px;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+    
+    .planner-body {
+      display: flex;
+      position: relative;
+    }
+    
+    .days-grid {
+      flex: 1;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-gap: 20px;
+      background-color: transparent;
+    }
+    
+    .day-column {
+      display: flex;
+      flex-direction: column;
+      background-color: var(--card-bg);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s, box-shadow 0.2s;
+      backdrop-filter: blur(8px);
+    }
+    
+    .day-column:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    }
+    
+    .day-header {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-color);
+      background-color: var(--primary-color);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .day-header i {
+      opacity: 0.8;
+    }
+    
+    .day-content {
+      padding: 16px;
+      flex: 1;
+    }
+    
+    .task-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .task-item:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+    
+    .task-checkbox {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--primary-color);
+      border-radius: 4px;
+      margin-right: 12px;
+      cursor: pointer;
+      position: relative;
+      transition: background-color 0.2s;
+      background-color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .task-checkbox:hover {
+      background-color: rgba(255, 221, 64, 0.2);
+    }
+    
+    .task-text {
+      flex: 1;
+      color: var(--text-color);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 3px 5px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    
+    .task-text:hover {
+      background-color: rgba(255, 221, 64, 0.2);
+    }
+    
+    .task-time {
+      font-size: 12px;
+      color: var(--muted-text);
+      margin-left: 10px;
+      min-width: 55px;
+      text-align: right;
+    }
+    
+    .add-task {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted-text);
+      cursor: pointer;
+      margin-top: 12px;
+      padding: 8px;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      font-size: 14px;
+    }
+    
+    .add-task:hover {
+      background-color: rgba(255, 221, 64, 0.2);
+      color: var(--primary-color);
+    }
+    
+    .add-task-icon {
+      margin-right: 8px;
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+    
+    /* Task edit popup */
+    .task-edit-popup {
+      position: absolute;
+      background-color: white;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      padding: 15px;
+      z-index: 100;
+      width: 300px;
+    }
+    
+    .task-edit-popup h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: var(--text-color);
+    }
+    
+    .task-edit-popup input {
+      width: 100%;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    
+    .task-edit-popup .button-group {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    
+    .task-edit-popup button {
+      background-color: var(--primary-color);
+      border: none;
+      border-radius: 4px;
+      color: white;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .task-edit-popup button.cancel-btn {
+      background-color: #f8f9fa;
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+    }
+    
+    /* Time picker style */
+    .time-picker-container {
+      margin-bottom: 10px;
+    }
+    
+    .time-picker-container label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+      color: var(--text-color);
+    }
+    
+    .time-picker {
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+    
+    .time-picker input {
+      width: 70px;
+      text-align: center;
+      padding: 6px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 14px;
+      margin-right: 5px;
+      margin-bottom: 0;
+    }
+    
+    .time-picker .time-format {
+      display: flex;
+      margin-left: 10px;
+    }
+    
+    .time-format label {
+      margin-right: 5px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    
+    .time-format input[type="radio"] {
+      margin-right: 3px;
+      width: auto;
+    }
+    
+    .time-icon {
+      display: inline-block;
+      margin-right: 5px;
+      color: var(--primary-color);
+    }
+    
+    @media (max-width: 1100px) {
+      .days-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .days-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="planner-container">
+    <div class="planner-header">
+      <div class="current-date" id="current-date">March 8, 2025</div>
+      <h1 class="planner-title">Weekly Planner</h1>
+      <div style="width: 120px;"></div> <!-- Spacer for balance -->
+    </div>
+    
+    <div class="planner-body">
+      <div class="days-grid">
+        <div class="day-column">
+          <div class="day-header">
+            Monday <i class="fas fa-calendar-day"></i>
+          </div>
+          <div class="day-content">
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Team meeting</div>
+              <div class="task-time">9:00 AM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Update project timeline</div>
+              <div class="task-time"></div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Call with client</div>
+              <div class="task-time">2:00 PM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Review feedback</div>
+              <div class="task-time">4:30 PM</div>
+            </div>
+            <div class="add-task">
+              <span class="add-task-icon"><i class="fas fa-plus-circle"></i></span> Add task
+            </div>
+          </div>
+        </div>
+        
+        <div class="day-column">
+          <div class="day-header">
+            Tuesday <i class="fas fa-calendar-day"></i>
+          </div>
+          <div class="day-content">
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Code review</div>
+              <div class="task-time">9:30 AM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Run tests</div>
+              <div class="task-time">10:45 AM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Update stakeholders</div>
+              <div class="task-time">11:30 AM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Research new tools</div>
+              <div class="task-time">3:15 PM</div>
+            </div>
+            <div class="add-task">
+              <span class="add-task-icon"><i class="fas fa-plus-circle"></i></span> Add task
+            </div>
+          </div>
+        </div>
+        
+        <div class="day-column">
+          <div class="day-header">
+            Wednesday <i class="fas fa-calendar-day"></i>
+          </div>
+          <div class="day-content">
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Design review</div>
+              <div class="task-time">10:00 AM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Update documentation</div>
+              <div class="task-time">11:15 AM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Team lunch</div>
+              <div class="task-time">12:30 PM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Prepare presentation</div>
+              <div class="task-time">2:45 PM</div>
+            </div>
+            <div class="add-task">
+              <span class="add-task-icon"><i class="fas fa-plus-circle"></i></span> Add task
+            </div>
+          </div>
+        </div>
+        
+        <div class="day-column">
+          <div class="day-header">
+            Thursday <i class="fas fa-calendar-day"></i>
+          </div>
+          <div class="day-content">
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Sprint planning</div>
+              <div class="task-time">9:30 AM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">User testing</div>
+              <div class="task-time">11:00 AM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Fix bugs</div>
+              <div class="task-time">2:00 PM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Deploy update</div>
+              <div class="task-time">4:00 PM</div>
+            </div>
+            <div class="add-task">
+              <span class="add-task-icon"><i class="fas fa-plus-circle"></i></span> Add task
+            </div>
+          </div>
+        </div>
+        
+        <div class="day-column">
+          <div class="day-header">
+            Friday <i class="fas fa-calendar-day"></i>
+          </div>
+          <div class="day-content">
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Weekly report</div>
+              <div class="task-time">10:00 AM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Client presentation</div>
+              <div class="task-time">1:30 PM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Team feedback session</div>
+              <div class="task-time">3:15 PM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Plan next week</div>
+              <div class="task-time">4:45 PM</div>
+            </div>
+            <div class="add-task">
+              <span class="add-task-icon"><i class="fas fa-plus-circle"></i></span> Add task
+            </div>
+          </div>
+        </div>
+        
+        <div class="day-column">
+          <div class="day-header">
+            Weekend <i class="fas fa-calendar-week"></i>
+          </div>
+          <div class="day-content">
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Weekend reading</div>
+              <div class="task-time">9:30 AM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Personal project</div>
+              <div class="task-time">11:00 AM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Coffee with friend</div>
+              <div class="task-time">11:00 AM</div>
+            </div>
+            <div class="task-item">
+              <div class="task-checkbox"></div>
+              <div class="task-text">Grocery shopping</div>
+              <div class="task-time">2:30 PM</div>
+            </div>
+            <div class="add-task">
+              <span class="add-task-icon"><i class="fas fa-plus-circle"></i></span> Add task
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Task edit popup -->
+  <div id="taskEditPopup" class="task-edit-popup" style="display: none;">
+    <h3>Edit Task</h3>
+    <input type="text" id="taskNameInput" placeholder="Task name">
+    
+    <div class="time-picker-container">
+      <label for="timeInput"><i class="fas fa-clock time-icon"></i>Time</label>
+      <div class="time-picker">
+        <input type="text" id="timeHourInput" placeholder="HH" maxlength="2">
+        <span>:</span>
+        <input type="text" id="timeMinuteInput" placeholder="MM" maxlength="2">
+        <div class="time-format">
+          <label><input type="radio" name="ampm" value="AM" checked> AM</label>
+          <label><input type="radio" name="ampm" value="PM"> PM</label>
+        </div>
+      </div>
+    </div>
+    
+    <div class="button-group">
+      <button id="saveTaskBtn">Save</button>
+      <button id="cancelTaskBtn" class="cancel-btn">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    // Set current date
+    const now = new Date();
+    document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+    
+    // Add checkbox functionality
+    const checkboxes = document.querySelectorAll('.task-checkbox');
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('click', function() {
+        this.style.backgroundColor = this.style.backgroundColor ? '' : '#ffdd40';
+        this.style.borderColor = this.style.backgroundColor ? '#ffdd40' : '#ffdd40';
+        this.style.position = 'relative';
+        
+        // Add or remove checkmark
+        if (this.style.backgroundColor) {
+          if (!this.querySelector('.checkmark')) {
+            const checkmark = document.createElement('div');
+            checkmark.className = 'checkmark';
+            checkmark.innerHTML = '✓';
+            checkmark.style.position = 'absolute';
+            checkmark.style.top = '50%';
+            checkmark.style.left = '50%';
+            checkmark.style.transform = 'translate(-50%, -50%)';
+            checkmark.style.color = 'white';
+            checkmark.style.fontSize = '12px';
+            this.appendChild(checkmark);
+            
+            // Strike through text
+            this.nextElementSibling.style.textDecoration = 'line-through';
+            this.nextElementSibling.style.opacity = '0.7';
+          }
+        } else {
+          const checkmark = this.querySelector('.checkmark');
+          if (checkmark) {
+            this.removeChild(checkmark);
+            
+            // Remove strike through
+            this.nextElementSibling.style.textDecoration = 'none';
+            this.nextElementSibling.style.opacity = '1';
+          }
+        }
+      });
+    });
+    
+    // Task edit popup elements
+    const taskEditPopup = document.getElementById('taskEditPopup');
+    const taskNameInput = document.getElementById('taskNameInput');
+    const timeHourInput = document.getElementById('timeHourInput');
+    const timeMinuteInput = document.getElementById('timeMinuteInput');
+    const saveTaskBtn = document.getElementById('saveTaskBtn');
+    const cancelTaskBtn = document.getElementById('cancelTaskBtn');
+    let currentTaskItem = null;
+    
+    // Enable task editing functionality
+    document.querySelectorAll('.task-text').forEach(taskText => {
+      taskText.addEventListener('click', function(e) {
+        e.stopPropagation();
+        
+        // Don't edit if task is struck through (completed)
+        if (this.style.textDecoration === 'line-through') {
+          return;
+        }
+        
+        // Get parent task item
+        currentTaskItem = this.closest('.task-item');
+        
+        // Get current values
+        const taskName = this.textContent.trim();
+        const taskTimeElement = currentTaskItem.querySelector('.task-time');
+        const taskTime = taskTimeElement ? taskTimeElement.textContent.trim() : '';
+        
+        // Set values in popup
+        taskNameInput.value = taskName;
+        
+        // Parse time if present
+        if (taskTime) {
+          const timeMatch = taskTime.match(/(\d+):(\d+)\s+(AM|PM)/);
+          if (timeMatch) {
+            timeHourInput.value = timeMatch[1];
+            timeMinuteInput.value = timeMatch[2];
+            document.querySelector(`input[name="ampm"][value="${timeMatch[3]}"]`).checked = true;
+          } else {
+            timeHourInput.value = '';
+            timeMinuteInput.value = '';
+            document.querySelector('input[name="ampm"][value="AM"]').checked = true;
+          }
+        } else {
+          timeHourInput.value = '';
+          timeMinuteInput.value = '';
+          document.querySelector('input[name="ampm"][value="AM"]').checked = true;
+        }
+        
+        // Position and show popup
+        const rect = currentTaskItem.getBoundingClientRect();
+        taskEditPopup.style.top = `${rect.bottom + window.scrollY + 5}px`;
+        taskEditPopup.style.left = `${rect.left + window.scrollX}px`;
+        taskEditPopup.style.display = 'block';
+      });
+    });
+    
+    // Validate time inputs to only allow numbers
+    timeHourInput.addEventListener('input', function() {
+      this.value = this.value.replace(/[^0-9]/g, '');
+      if (parseInt(this.value) > 12) this.value = '12';
+      if (this.value.length === 2) timeMinuteInput.focus();
+    });
+    
+    timeMinuteInput.addEventListener('input', function() {
+      this.value = this.value.replace(/[^0-9]/g, '');
+      if (parseInt(this.value) > 59) this.value = '59';
+    });
+    
+    // Task popup save button
+    saveTaskBtn.addEventListener('click', function() {
+      if (currentTaskItem && taskNameInput.value) {
+        let timeString = '';
+        
+        // Format time if provided
+        if (timeHourInput.value && timeMinuteInput.value) {
+          const hours = timeHourInput.value.padStart(2, '0');
+          const minutes = timeMinuteInput.value.padStart(2, '0');
+          const ampm = document.querySelector('input[name="ampm"]:checked').value;
+          timeString = `${hours}:${minutes} ${ampm}`;
+        }
+        
+        if (currentTaskItem.isNew) {
+          // Add new task
+          addNewTask(currentTaskItem.dayContent, taskNameInput.value.trim(), timeString);
+        } else {
+          // Update existing task
+          const taskTextElement = currentTaskItem.querySelector('.task-text');
+          const taskTimeElement = currentTaskItem.querySelector('.task-time');
+          
+          taskTextElement.textContent = taskNameInput.value.trim();
+          if (taskTimeElement) {
+            taskTimeElement.textContent = timeString;
+          }
+        }
+        
+        // Hide popup
+        taskEditPopup.style.display = 'none';
+      }
+    });
+    
+    // Cancel task editing
+    cancelTaskBtn.addEventListener('click', function() {
+      taskEditPopup.style.display = 'none';
+    });
+    
+    // Add task functionality
+    document.querySelectorAll('.add-task').forEach(button => {
+      button.addEventListener('click', function() {
+        // Reset inputs
+        taskNameInput.value = '';
+        timeHourInput.value = '';
+        timeMinuteInput.value = '';
+        document.querySelector('input[name="ampm"][value="AM"]').checked = true;
+        
+        // Store reference to the day content
+        currentTaskItem = {
+          dayContent: this.parentElement,
+          isNew: true
+        };
+        
+        // Position and show popup
+        const rect = this.getBoundingClientRect();
+        taskEditPopup.style.top = `${rect.top + window.scrollY - 10}px`;
+        taskEditPopup.style.left = `${rect.left + window.scrollX}px`;
+        taskEditPopup.style.display = 'block';
+      });
+    });
+    
+    // Function to add a new task
+    function addNewTask(dayContent, taskText, taskTime = '') {
+      if (taskText) {
+        // Create new task item
+        const newTaskItem = document.createElement('div');
+        newTaskItem.className = 'task-item';
+        
+        // Create checkbox
+        const newCheckbox = document.createElement('div');
+        newCheckbox.className = 'task-checkbox';
+        newCheckbox.addEventListener('click', function() {
+          this.style.backgroundColor = this.style.backgroundColor ? '' : '#ffdd40';
+          this.style.borderColor = this.style.backgroundColor ? '#ffdd40' : '#ffdd40';
+          this.style.position = 'relative';
+          
+          // Add or remove checkmark
+          if (this.style.backgroundColor) {
+            if (!this.querySelector('.checkmark')) {
+              const checkmark = document.createElement('div');
+              checkmark.className = 'checkmark';
+              checkmark.innerHTML = '✓';
+              checkmark.style.position = 'absolute';
+              checkmark.style.top = '50%';
+              checkmark.style.left = '50%';
+              checkmark.style.transform = 'translate(-50%, -50%)';
+              checkmark.style.color = 'white';
+              checkmark.style.fontSize = '12px';
+              this.appendChild(checkmark);
+              
+              // Strike through text
+              newTaskItem.querySelector('.task-text').style.textDecoration = 'line-through';
+              newTaskItem.querySelector('.task-text').style.opacity = '0.7';
+            }
+          } else {
+            const checkmark = this.querySelector('.checkmark');
+            if (checkmark) {
+              this.removeChild(checkmark);
+              
+              // Remove strike through
+              newTaskItem.querySelector('.task-text').style.textDecoration = 'none';
+              newTaskItem.querySelector('.task-text').style.opacity = '1';
+            }
+          }
+        });
+
+        // Create task text
+        const newTaskText = document.createElement('div');
+        newTaskText.className = 'task-text';
+        newTaskText.textContent = taskText;
+        newTaskText.addEventListener('click', function(e) {
+          e.stopPropagation();
+          
+          // Don't edit if task is struck through (completed)
+          if (this.style.textDecoration === 'line-through') {
+            return;
+          }
+          
+          // Set up task editing
+          currentTaskItem = this.closest('.task-item');
+          taskNameInput.value = this.textContent.trim();
+          
+          // Get time if available
+          const taskTimeElement = currentTaskItem.querySelector('.task-time');
+          const taskTime = taskTimeElement ? taskTimeElement.textContent.trim() : '';
+          
+          // Parse time if present
+          if (taskTime) {
+            const timeMatch = taskTime.match(/(\d+):(\d+)\s+(AM|PM)/);
+            if (timeMatch) {
+              timeHourInput.value = timeMatch[1];
+              timeMinuteInput.value = timeMatch[2];
+              document.querySelector(`input[name="ampm"][value="${timeMatch[3]}"]`).checked = true;
+            } else {
+              timeHourInput.value = '';
+              timeMinuteInput.value = '';
+              document.querySelector('input[name="ampm"][value="AM"]').checked = true;
+            }
+          } else {
+            timeHourInput.value = '';
+            timeMinuteInput.value = '';
+            document.querySelector('input[name="ampm"][value="AM"]').checked = true;
+          }
+          
+          // Position and show popup
+          const rect = currentTaskItem.getBoundingClientRect();
+          taskEditPopup.style.top = `${rect.bottom + window.scrollY + 5}px`;
+          taskEditPopup.style.left = `${rect.left + window.scrollX}px`;
+          taskEditPopup.style.display = 'block';
+        });
+
+        // Create task time
+        const newTaskTime = document.createElement('div');
+        newTaskTime.className = 'task-time';
+        newTaskTime.textContent = taskTime;
+
+        // Append elements to the new task item
+        newTaskItem.appendChild(newCheckbox);
+        newTaskItem.appendChild(newTaskText);
+        newTaskItem.appendChild(newTaskTime);
+
+        // Find the "Add task" button and insert the new task before it
+        const addTaskBtn = dayContent.querySelector('.add-task');
+        dayContent.insertBefore(newTaskItem, addTaskBtn);
+      }
+    }
+    
+   // Close popup when clicking outside
+   document.addEventListener('click', function(e) {
+      if (!taskEditPopup.contains(e.target) && 
+          !e.target.classList.contains('task-text') && 
+          !e.target.classList.contains('add-task') &&
+          !e.target.classList.contains('add-task-icon')) {
+        taskEditPopup.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html><!-- Add this CSS to the existing style section -->
+<style>
+  .task-delete {
+    color: #6c757d;
+    font-size: 12px;
+    margin-left: 8px;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s, color 0.2s;
+  }
+  
+  .task-delete:hover {
+    opacity: 1;
+    color: #dc3545;
+  }
+  
+  .task-item {
+    position: relative;
+  }
+  
+  .task-actions {
+    display: flex;
+    align-items: center;
+  }
+</style>
+
+<!-- Add this to the JavaScript section, before the closing </script> tag -->
+<script>
+  // Add delete buttons to existing tasks
+  function addDeleteButtons() {
+    document.querySelectorAll('.task-item').forEach(taskItem => {
+      // Skip if delete button already exists
+      if (taskItem.querySelector('.task-delete')) return;
+      
+      // Create delete button
+      const deleteBtn = document.createElement('div');
+      deleteBtn.className = 'task-delete';
+      deleteBtn.innerHTML = '<i class="fas fa-times"></i>';
+      deleteBtn.title = "Delete task";
+      
+      // Add delete functionality
+      deleteBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (confirm('Are you sure you want to delete this task?')) {
+          taskItem.remove();
+        }
+      });
+      
+      // Add button to task
+      const timeElement = taskItem.querySelector('.task-time');
+      
+      // Create actions container if it doesn't exist
+      let actionsContainer = taskItem.querySelector('.task-actions');
+      if (!actionsContainer) {
+        actionsContainer = document.createElement('div');
+        actionsContainer.className = 'task-actions';
+        
+        // Move time element into actions container
+        if (timeElement) {
+          timeElement.parentNode.removeChild(timeElement);
+          actionsContainer.appendChild(timeElement);
+        }
+        
+        taskItem.appendChild(actionsContainer);
+      }
+      
+      actionsContainer.appendChild(deleteBtn);
+    });
+  }
+  
+  // Run immediately for existing tasks
+  addDeleteButtons();
+  
+  // Modify the addNewTask function to include delete button for new tasks
+  const originalAddNewTask = addNewTask;
+  addNewTask = function(dayContent, taskText, taskTime = '') {
+    originalAddNewTask(dayContent, taskText, taskTime);
+    addDeleteButtons();
+  };
+</script>/* Container size constraints */
+.planner-container {
+  width: 17.5cm;
+  height: 17.5cm;
+  max-width: 17.5cm; 
+  max-height: 17.5cm;
+  overflow: auto;
+}
+
+/* Reduce padding and margins */
+body {
+  padding: 0;
+  margin: 0;
+}
+
+.planner-header {
+  padding: 8px 16px;
+  height: auto;
+  min-height: 40px;
+}
+
+.planner-title {
+  font-size: 18px;
+}
+
+.current-date {
+  font-size: 14px;
+}
+
+/* Adjust grid layout */
+.days-grid {
+  padding: 12px;
+  grid-gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  max-height: calc(17.5cm - 40px - 24px); /* container height - header - grid padding */
+  overflow-y: auto;
+}
+
+/* Make day columns more compact */
+.day-header {
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.day-content {
+  padding: 10px;
+  max-height: 170px;
+  overflow-y: auto;
+}
+
+.task-item {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+}
+
+.task-text {
+  font-size: 12px;
+}
+
+.task-time, .task-delete {
+  font-size: 10px;
+}
+
+.add-task {
+  margin-top: 8px;
+  padding: 6px;
+  font-size: 12px;
+}
+
+/* Adjust task edit popup */
+.task-edit-popup {
+  width: 250px;
+  padding: 12px;
+}
+
+.task-edit-popup h3 {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.task-edit-popup input {
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+/* Media query adjustments */
+@media (max-width: 17.5cm) {
+  .days-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 12cm) {
+  .days-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+<!-- Add this to the existing CSS styles section -->
+<style>
+    /* Container size constraints */
+    .planner-container {
+      width: 27.5cm;  /* Increased from 17.5cm to 27.5cm */
+      height: 27.5cm; /* Increased from 17.5cm to 27.5cm */
+      max-width: 27.5cm; 
+      max-height: 27.5cm;
+      overflow: auto;
+    }
+    
+    /* Adjust header size */
+    .planner-header {
+      padding: 12px 20px;
+      height: auto;
+      min-height: 60px; /* Increased from 40px */
+    }
+    
+    .planner-title {
+      font-size: 24px; /* Increased from 18px */
+    }
+    
+    .current-date {
+      font-size: 16px; /* Increased from 14px */
+    }
+    
+    /* Adjust grid layout */
+    .days-grid {
+      padding: 16px;
+      grid-gap: 15px; /* Increased from 10px */
+      grid-template-columns: repeat(3, 1fr);
+      max-height: calc(27.5cm - 60px - 32px); /* container height - header - grid padding */
+      overflow-y: auto;
+    }
+    
+    /* Make day columns more spacious */
+    .day-header {
+      padding: 12px 16px;
+      font-size: 16px; /* Increased from 14px */
+    }
+    
+    .day-content {
+      padding: 14px;
+      max-height: 280px; /* Increased from 170px */
+      overflow-y: auto;
+    }
+    
+    .task-item {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+    }
+    
+    .task-text {
+      font-size: 14px; /* Increased from 12px */
+    }
+    
+    .task-time, .task-delete {
+      font-size: 12px; /* Increased from 10px */
+    }
+    
+    .add-task {
+      margin-top: 12px;
+      padding: 8px;
+      font-size: 14px; /* Increased from 12px */
+    }
+    
+    /* Adjust task edit popup */
+    .task-edit-popup {
+      width: 300px; /* Increased from 250px */
+      padding: 16px;
+    }
+    
+    .task-edit-popup h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    
+    .task-edit-popup input {
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    
+    /* Media query adjustments */
+    @media (max-width: 27.5cm) {
+      .days-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    @media (max-width: 18cm) {
+      .days-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
